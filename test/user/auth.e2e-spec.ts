@@ -12,7 +12,7 @@ describe('Auth user (e2e)', () => {
   const mail = `http://${MAIL_HOST}:${MAIL_PORT}`;
   const newUserFirstName = `Tester${Date.now()}`;
   const newUserLastName = `E2E`;
-  const newUserEmail = `user.${Date.now()}@example.com`;
+  const newUserEmail = `User.${Date.now()}@example.com`;
   const newUserPassword = `secret`;
 
   it('Login: /api/v1/auth/login/email (POST)', () => {
@@ -76,7 +76,8 @@ describe('Auth user (e2e)', () => {
         body
           .find(
             (letter) =>
-              letter.to[0].address === newUserEmail &&
+              letter.to[0].address.toLowerCase() ===
+                newUserEmail.toLowerCase() &&
               /.*confirm\-email\/(\w+).*/g.test(letter.text),
           )
           ?.text.replace(/.*confirm\-email\/(\w+).*/g, '$1'),
@@ -116,8 +117,20 @@ describe('Auth user (e2e)', () => {
       .send({
         firstName: newUserNewName,
         password: newUserNewPassword,
+      })
+      .expect(422);
+
+    await request(app)
+      .patch('/api/v1/auth/me')
+      .auth(newUserApiToken, {
+        type: 'bearer',
+      })
+      .send({
+        firstName: newUserNewName,
+        password: newUserNewPassword,
         oldPassword: newUserPassword,
-      });
+      })
+      .expect(200);
 
     await request(app)
       .post('/api/v1/auth/login/email')
@@ -132,7 +145,8 @@ describe('Auth user (e2e)', () => {
       .auth(newUserApiToken, {
         type: 'bearer',
       })
-      .send({ password: newUserPassword, oldPassword: newUserNewPassword });
+      .send({ password: newUserPassword, oldPassword: newUserNewPassword })
+      .expect(200);
   });
 
   it('New user delete profile: /api/v1/auth/me (DELETE)', async () => {
